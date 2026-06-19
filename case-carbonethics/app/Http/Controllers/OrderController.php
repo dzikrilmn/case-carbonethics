@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\Order\OrderCollectionResource;
+use App\Http\Resources\Order\OrderResource;
 use App\Models\Order;
 use App\Models\Product;
 use Illuminate\Http\JsonResponse;
@@ -25,64 +27,54 @@ class OrderController extends Controller
             'items.*.qty' => ['required', 'integer', 'min:1'],
         ]);
 
-        try {
-            return DB::transaction(function () use ($validated) {
-                // Get all products that are being ordered
-                $productIds = array_column($validated['items'], 'product_id');
-                $products = Product::query()
-                    ->whereIn('id', $productIds)
-                    ->get()
-                    ->keyBy('id');
+        $order = DB::transaction(function () use ($validated) {
+            $productIds = array_column($validated['items'], 'product_id');
+            $products = Product::query()
+                ->whereIn('id', $productIds)
+                ->get()
+                ->keyBy('id');
 
-                // Validate all products are active
-                foreach ($validated['items'] as $item) {
-                    $product = $products->get($item['product_id']);
+            $order = Order::query()->create([
+                'customer_name' => $validated['customer_name'],
+                'customer_email' => $validated['customer_email'],
+                'status' => Order::STATUS_PENDING,
+                'total_price' => 0,
+            ]);
 
-                    if (!$product) {
-                        throw ValidationException::withMessages([
-                            'items' => ["Product with ID {$item['product_id']} not found."],
-                        ]);
-                    }
+            $totalPrice = 0;
 
-                    if ($product->status !== Product::STATUS_ACTIVE) {
-                        throw ValidationException::withMessages([
-                            'items' => ["Product '{$product->name}' is not active."],
-                        ]);
-                    }
-                }
+            foreach ($validated['items'] as $index => $item) {
+                $product = $products->get($item['product_id']);
 
-                // Create order
-                $order = Order::query()->create([
-                    'customer_name' => $validated['customer_name'],
-                    'customer_email' => $validated['customer_email'],
-                    'status' => Order::STATUS_PENDING,
-                    'total_price' => 0, // Will be calculated after items are added
-                ]);
-
-                // Create order items with price snapshot
-                $totalPrice = 0;
-
-                foreach ($validated['items'] as $item) {
-                    $product = $products->get($item['product_id']);
-                    $subtotal = $product->price * $item['qty'];
-                    $totalPrice += $subtotal;
-
-                    $order->items()->create([
-                        'product_id' => $item['product_id'],
-                        'qty' => $item['qty'],
-                        'price' => $product->price, // Snapshot of current price
-                        'subtotal' => $subtotal,
+                if (! $product) {
+                    throw ValidationException::withMessages([
+                        "items.{$index}.product_id" => ['Product not found.'],
                     ]);
                 }
 
-                // Update order total_price
-                $order->update(['total_price' => $totalPrice]);
+                if ($product->status !== Product::STATUS_ACTIVE) {
+                    throw ValidationException::withMessages([
+                        "items.{$index}.product_id" => ['Product is not active.'],
+                    ]);
+                }
 
-                return response()->json($order->load('items'), 201);
-            });
-        } catch (ValidationException $e) {
-            return response()->json(['errors' => $e->errors()], 422);
-        }
+                $subtotal = $product->price * $item['qty'];
+                $totalPrice += $subtotal;
+
+                $order->items()->create([
+                    'product_id' => $item['product_id'],
+                    'qty' => $item['qty'],
+                    'price' => $product->price,
+                    'subtotal' => $subtotal,
+                ]);
+            }
+
+            $order->update(['total_price' => $totalPrice]);
+
+            return $order->load('items');
+        });
+
+        return (new OrderResource($order))->response()->setStatusCode(201);
     }
 
     /**
@@ -97,7 +89,7 @@ class OrderController extends Controller
             ->latest()
             ->get();
 
-        return response()->json($orders);
+        return (new OrderCollectionResource($orders))->response();
     }
 
     /**
@@ -107,7 +99,7 @@ class OrderController extends Controller
     {
         $this->ensureAdmin($request);
 
-        return response()->json($order->load('items'));
+        return (new OrderResource($order->load('items')))->response();
     }
 
     /**

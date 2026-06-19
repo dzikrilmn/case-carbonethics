@@ -26,6 +26,15 @@ class ProductModuleTest extends TestCase
             ->assertJsonFragment(['name' => $firstProduct->name]);
     }
 
+    public function test_missing_product_returns_standard_404_response(): void
+    {
+        $this->getJson('/api/products/999999')
+            ->assertNotFound()
+            ->assertJson([
+                'message' => 'Resource not found.',
+            ]);
+    }
+
     public function test_admin_can_create_update_and_delete_products(): void
     {
         $admin = User::factory()->admin()->create();
@@ -41,7 +50,7 @@ class ProductModuleTest extends TestCase
             ->assertCreated()
             ->assertJsonFragment(['name' => 'Reusable Bottle']);
 
-        $productId = $createResponse->json('id');
+        $productId = $createResponse->json('data.id');
 
         $this->actingAs($admin, 'sanctum')->putJson('/api/products/' . $productId, [
             'name' => 'Updated Bottle',
@@ -54,7 +63,7 @@ class ProductModuleTest extends TestCase
 
         $this->actingAs($admin, 'sanctum')->deleteJson('/api/products/' . $productId)
             ->assertOk()
-            ->assertJson([
+            ->assertJsonFragment([
                 'message' => 'Product deleted successfully.',
             ]);
 
@@ -74,6 +83,19 @@ class ProductModuleTest extends TestCase
         ])->assertForbidden();
     }
 
+    public function test_guest_cannot_create_products(): void
+    {
+        $this->postJson('/api/products', [
+            'name' => 'Guest Product',
+            'price' => 10,
+            'status' => Product::STATUS_ACTIVE,
+        ])
+            ->assertUnauthorized()
+            ->assertJson([
+                'message' => 'Unauthenticated.',
+            ]);
+    }
+
     public function test_product_validation_requires_name_price_and_valid_status(): void
     {
         $admin = User::factory()->admin()->create();
@@ -83,6 +105,9 @@ class ProductModuleTest extends TestCase
             'status' => 'archived',
         ])
             ->assertUnprocessable()
+            ->assertJson([
+                'message' => 'Validation failed',
+            ])
             ->assertJsonValidationErrors(['name', 'price', 'status']);
     }
 }

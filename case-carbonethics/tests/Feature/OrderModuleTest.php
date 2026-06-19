@@ -37,12 +37,11 @@ class OrderModuleTest extends TestCase
 
         $response
             ->assertCreated()
-            ->assertJsonFragment(['customer_name' => 'Budi'])
-            ->assertJsonFragment(['customer_email' => 'budi@mail.com'])
-            ->assertJsonFragment(['status' => Order::STATUS_PENDING]);
-
-        // Check total_price: (50 * 2) + (30 * 3) = 100 + 90 = 190
-        $response->assertJsonFragment(['total_price' => '190.00']);
+            ->assertJsonPath('data.customer_name', 'Budi')
+            ->assertJsonPath('data.customer_email', 'budi@mail.com')
+            ->assertJsonPath('data.status', Order::STATUS_PENDING)
+            ->assertJsonPath('data.total_price', '190.00')
+            ->assertJsonCount(2, 'data.items');
 
         // Verify order items have price snapshot
         $this->assertDatabaseHas('order_items', [
@@ -83,7 +82,8 @@ class OrderModuleTest extends TestCase
 
         $response
             ->assertUnprocessable()
-            ->assertJsonFragment(['is not active']);
+            ->assertJsonPath('message', 'Validation failed')
+            ->assertJsonFragment(['Product is not active.']);
 
         $this->assertDatabaseMissing('orders', [
             'customer_email' => 'budi@mail.com',
@@ -100,7 +100,9 @@ class OrderModuleTest extends TestCase
             ],
         ]);
 
-        $response->assertUnprocessable();
+        $response
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'Validation failed');
     }
 
     public function test_order_requires_valid_email(): void
@@ -115,7 +117,9 @@ class OrderModuleTest extends TestCase
             ],
         ]);
 
-        $response->assertUnprocessable();
+        $response
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'Validation failed');
     }
 
     public function test_admin_can_list_all_orders(): void
@@ -139,7 +143,7 @@ class OrderModuleTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertJsonCount(2);
+            ->assertJsonCount(2, 'data');
     }
 
     public function test_admin_can_view_single_order(): void
@@ -153,14 +157,14 @@ class OrderModuleTest extends TestCase
             'items' => [['product_id' => $product->id, 'qty' => 2]],
         ]);
 
-        $orderId = $createResponse->json('id');
+        $orderId = $createResponse->json('data.id');
 
         $response = $this->actingAs($admin, 'sanctum')->getJson('/api/orders/' . $orderId);
 
         $response
             ->assertOk()
-            ->assertJsonFragment(['customer_name' => 'Budi'])
-            ->assertJsonCount(1, 'items');
+            ->assertJsonPath('data.customer_name', 'Budi')
+            ->assertJsonCount(1, 'data.items');
     }
 
     public function test_non_admin_cannot_list_orders(): void
@@ -182,7 +186,7 @@ class OrderModuleTest extends TestCase
             'items' => [['product_id' => $product->id, 'qty' => 1]],
         ]);
 
-        $orderId = $createResponse->json('id');
+        $orderId = $createResponse->json('data.id');
 
         $this->actingAs($user, 'sanctum')->getJson('/api/orders/' . $orderId)
             ->assertForbidden();
@@ -196,7 +200,9 @@ class OrderModuleTest extends TestCase
             'items' => [['product_id' => $product->id, 'qty' => 1]],
         ]);
 
-        $response->assertUnprocessable();
+        $response
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'Validation failed');
     }
 
     public function test_order_requires_at_least_one_item(): void
@@ -207,6 +213,8 @@ class OrderModuleTest extends TestCase
             'items' => [],
         ]);
 
-        $response->assertUnprocessable();
+        $response
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'Validation failed');
     }
 }

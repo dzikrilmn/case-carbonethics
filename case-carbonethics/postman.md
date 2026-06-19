@@ -146,7 +146,22 @@ Before testing, make sure:
 ### Expected Result
 
 - Response status: 200
-- Response contains an array of products with `id`, `name`, `description`, `price`, and `status` fields
+- Response structure:
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "name": "Product Name",
+      "description": "Description",
+      "price": "29.99",
+      "status": "active",
+      "created_at": "2026-06-19T10:00:00.000000Z",
+      "updated_at": "2026-06-19T10:00:00.000000Z"
+    }
+  ]
+}
+```
 
 ## 2. Test Get Product Details (Public)
 
@@ -159,7 +174,20 @@ Before testing, make sure:
 ### Expected Result
 
 - Response status: 200
-- Response contains a single product object
+- Response structure:
+```json
+{
+  "data": {
+    "id": 1,
+    "name": "Product Name",
+    "description": "Description",
+    "price": "29.99",
+    "status": "active",
+    "created_at": "2026-06-19T10:00:00.000000Z",
+    "updated_at": "2026-06-19T10:00:00.000000Z"
+  }
+}
+```
 
 ## 3. Create Product (Admin Only)
 
@@ -191,14 +219,27 @@ pm.test('Create product success', function () {
 });
 
 const json = pm.response.json();
-pm.environment.set('product_id', json.id);
+pm.environment.set('product_id', json.data.id);
 ```
 
 ### Expected Result
 
 - Response status: 201 Created
-- Response includes the created product with `id`
-- product_id is saved into the Postman environment
+- Response structure:
+```json
+{
+  "data": {
+    "id": 1,
+    "name": "Reusable Bottle",
+    "description": "Eco-friendly stainless steel bottle",
+    "price": "29.99",
+    "status": "active",
+    "created_at": "2026-06-19T10:00:00.000000Z",
+    "updated_at": "2026-06-19T10:00:00.000000Z"
+  }
+}
+```
+- product_id is saved into the Postman environment from `data.id`
 
 ## 4. Update Product (Admin Only)
 
@@ -231,7 +272,20 @@ pm.test('Update product success', function () {
 ### Expected Result
 
 - Response status: 200
-- Response contains the updated product
+- Response contains the updated product wrapped in `data`:
+```json
+{
+  "data": {
+    "id": 1,
+    "name": "Premium Reusable Bottle",
+    "description": "Updated description",
+    "price": "39.99",
+    "status": "active",
+    "created_at": "2026-06-19T10:00:00.000000Z",
+    "updated_at": "2026-06-19T10:01:00.000000Z"
+  }
+}
+```
 
 ## 5. Delete Product (Admin Only)
 
@@ -254,7 +308,14 @@ pm.test('Delete product success', function () {
 ### Expected Result
 
 - Response status: 200
-- Response message: "Product deleted successfully."
+- Response structure:
+```json
+{
+  "data": {
+    "message": "Product deleted successfully."
+  }
+}
+```
 
 ## 6. Test Validation
 
@@ -277,7 +338,17 @@ pm.test('Delete product success', function () {
 ### Expected Result
 
 - Response status: 422 Unprocessable Entity
-- Response includes validation errors for `name`, `price`, and `status` fields
+- Response structure:
+```json
+{
+  "message": "The name field is required. (and 1 more error)",
+  "errors": {
+    "name": ["The name field is required."],
+    "price": ["The price must be at least 0."],
+    "status": ["The selected status is invalid."]
+  }
+}
+```
 
 ## Recommended Test Flow
 
@@ -350,13 +421,13 @@ pm.test('Create order success', function () {
 });
 
 const json = pm.response.json();
-pm.environment.set('order_id', json.id);
+pm.environment.set('order_id', json.data.id);
 ```
 
 ### Expected Result
 
 - Response status: 201 Created
-- Response includes:
+- Response includes a `data` object with:
   - Order details: `id`, `customer_name`, `customer_email`, `status` (pending), `total_price`
   - Items array with `product_id`, `qty`, `price` (snapshot), `subtotal`
   - `created_at` and `updated_at` timestamps
@@ -378,7 +449,7 @@ pm.environment.set('order_id', json.id);
 ### Expected Result
 
 - Response status: 200
-- Response is an array of orders, each containing:
+- Response is a `data` array of orders, each containing:
   - Order details and items array
   - All orders are included with their items loaded
 
@@ -395,7 +466,7 @@ pm.environment.set('order_id', json.id);
 ### Expected Result
 
 - Response status: 200
-- Response contains a single order object with all items included
+- Response contains a `data` object with a single order and all items included
 
 ## 4. Test Validation - Missing Customer Name
 
@@ -421,7 +492,7 @@ pm.environment.set('order_id', json.id);
 ### Expected Result
 
 - Response status: 422 Unprocessable Entity
-- Response includes validation error for `customer_name`
+- Response includes `message: "Validation failed"` and validation error for `customer_name`
 
 ## 5. Test Validation - Invalid Email
 
@@ -448,7 +519,7 @@ pm.environment.set('order_id', json.id);
 ### Expected Result
 
 - Response status: 422 Unprocessable Entity
-- Response includes validation error for `customer_email`
+- Response includes `message: "Validation failed"` and validation error for `customer_email`
 
 ## 6. Test Validation - No Items
 
@@ -470,7 +541,7 @@ pm.environment.set('order_id', json.id);
 ### Expected Result
 
 - Response status: 422 Unprocessable Entity
-- Response includes validation error for `items`
+- Response includes `message: "Validation failed"` and validation error for `items`
 
 ## 7. Test Validation - Non-existent Product
 
@@ -497,7 +568,7 @@ pm.environment.set('order_id', json.id);
 ### Expected Result
 
 - Response status: 422 Unprocessable Entity
-- Response includes validation error indicating product not found
+- Response includes `message: "Validation failed"` and validation error indicating product not found
 
 ## 8. Test Validation - Inactive Product
 
@@ -526,7 +597,7 @@ pm.environment.set('order_id', json.id);
 ### Expected Result
 
 - Response status: 422 Unprocessable Entity
-- Response includes validation error: "Product is not active"
+- Response includes `message: "Validation failed"` and validation error: "Product is not active"
 
 ## 9. Test Authorization - Non-admin Cannot List Orders
 
