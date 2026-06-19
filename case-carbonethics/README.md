@@ -1,3 +1,116 @@
+# Laravel 12 E-Commerce REST API
+
+## Install & Run dari 0
+
+### 1. Prasyarat
+
+Pastikan sudah terinstall:
+
+- PHP >= 8.2 — cek dengan `php -v`
+- Composer — cek dengan `composer -v`
+- MySQL / MariaDB (atau SQLite untuk testing lokal)
+- Git
+
+Kalau belum ada PHP dan Composer, install via:
+
+- **Windows**: [https://laravel.com/docs/installation#installing-php](https://laravel.com/docs/installation#installing-php) atau pakai Laragon
+- **Mac**: `brew install php composer`
+- **Linux (Ubuntu/Debian)**: `sudo apt install php8.2 php8.2-mbstring php8.2-xml php8.2-curl composer`
+
+---
+
+### 2. Clone & Install Dependencies
+
+```bash
+git clone <url-repo-ini>
+cd <nama-folder>
+composer install
+```
+
+---
+
+### 3. Setup Environment
+
+```bash
+cp .env.example .env
+php artisan key:generate
+```
+
+Buka file `.env`, sesuaikan konfigurasi database:
+
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=nama_database_kamu
+DB_USERNAME=root
+DB_PASSWORD=password_kamu
+```
+
+> Kalau mau pakai SQLite (lebih simpel untuk lokal):
+> ```env
+> DB_CONNECTION=sqlite
+> ```
+> Lalu buat filenya: `touch database/database.sqlite`
+
+---
+
+### 4. Jalankan Migrasi & Seeder
+
+```bash
+php artisan migrate
+php artisan db:seed
+```
+
+Seeder akan membuat dua user default:
+
+| Role  | Email               | Password |
+|-------|---------------------|----------|
+| admin | admin@example.com   | password |
+| user  | test@example.com    | password |
+
+---
+
+### 5. Jalankan Server
+
+**Cara utama (Laravel built-in):**
+
+```bash
+php artisan serve
+```
+
+Server berjalan di `http://localhost:8000`
+
+---
+
+**Kalau `php artisan serve` tidak bisa (misalnya port conflict atau permission error), pakai PHP built-in server langsung:**
+
+```bash
+php -S 127.0.0.1:8080 -t public
+```
+
+Server berjalan di `http://127.0.0.1:8080`
+
+> Catatan: Kalau pakai port 8080, update `base_url` di Postman menjadi `http://127.0.0.1:8080`
+
+---
+
+### 6. Jalankan Feature Test (Opsional)
+
+```bash
+php artisan test
+```
+
+Atau untuk test spesifik:
+
+```bash
+php artisan test --filter ProductModuleTest
+```
+
+---
+
+---
+
 # Postman Tutorial for Authentication
 
 This guide explains how to test the Laravel Sanctum authentication feature using Postman.
@@ -15,6 +128,8 @@ Example local base URL:
 ```text
 http://localhost:8000
 ```
+
+> Kalau pakai `php -S 127.0.0.1:8080 -t public`, ganti base URL menjadi `http://127.0.0.1:8080`
 
 ## 1. Create Environment Variables
 
@@ -120,6 +235,8 @@ This confirms the token was revoked correctly.
 - Always use HTTPS in production.
 - Do not share or log access tokens.
 - If you want to test another protected endpoint, reuse the same Authorization header format.
+
+---
 
 # Postman Tutorial for Product Module
 
@@ -370,6 +487,8 @@ pm.test('Delete product success', function () {
 - Prices must be numeric and at least 0.
 - Status must be either `active` or `inactive`.
 - Product names are required and must not exceed 255 characters.
+
+---
 
 # Postman Tutorial for Order Module
 
