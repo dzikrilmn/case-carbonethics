@@ -310,9 +310,23 @@ Success response (200):
 
 ```json
 {
-  "access_token": "1|long-sanctum-token-string",
-  "token_type": "Bearer",
-  "role": "user"
+  "data": {
+    "access_token": "1|long-sanctum-token-string",
+    "token_type": "Bearer",
+    "role": "user"
+  }
+}
+```
+
+Validation error response (422):
+
+```json
+{
+  "message": "Validation failed",
+  "errors": {
+    "email": ["The email field is required."],
+    "password": ["The password field is required."]
+  }
 }
 ```
 
@@ -333,7 +347,9 @@ Success response (200):
 
 ```json
 {
-  "message": "Logged out successfully."
+  "data": {
+    "message": "Logged out successfully."
+  }
 }
 ```
 

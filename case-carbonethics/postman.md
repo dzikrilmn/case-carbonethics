@@ -23,6 +23,8 @@ In Postman, create an environment such as Local API and add these variables:
 - base_url = http://localhost:8000
 - access_token = (leave empty)
 
+If you prefer, you can also store `access_token` as a collection variable. The tutorial below works with either environment or collection variables, but collection variables are less likely to be affected by a wrong environment selection.
+
 ## 2. Test Login Endpoint
 
 ### Request
@@ -49,14 +51,21 @@ pm.test('Login success', function () {
 });
 
 const json = pm.response.json();
-pm.environment.set('access_token', json.access_token);
+
+pm.test('Token exists in response', function () {
+  pm.expect(json).to.have.property('data');
+  pm.expect(json.data).to.have.property('access_token');
+});
+
+pm.collectionVariables.set('access_token', json.data.access_token);
+pm.environment.set('access_token', json.data.access_token);
 ```
 
 ### Expected Result
 
 - Response status: 200
-- Response includes access_token
-- access_token is saved into the Postman environment
+- Response includes data.access_token
+- access_token is saved into the Postman collection and environment variables
 
 ## 3. Test Logout Endpoint
 
@@ -67,6 +76,13 @@ pm.environment.set('access_token', json.access_token);
 - Headers:
   - Authorization: Bearer {{access_token}}
   - Content-Type: application/json
+
+If `{{access_token}}` is empty, make sure:
+
+1. The login request returned status 200.
+2. The login response contained `data.access_token`.
+3. The Tests tab script was added to the login request, not the logout request.
+4. The same collection/environment is being used for both requests.
 
 ### Tests Tab Script
 
