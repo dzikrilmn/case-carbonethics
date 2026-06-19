@@ -119,6 +119,147 @@ Main product module files:
 - app/Models/Product.php
 - tests/Feature/ProductModuleTest.php
 
+# Order Module Documentation
+
+This module handles order creation and retrieval. Orders can be created by anyone (public endpoint) and must only contain active products. Order details (price, subtotal, total) are calculated and stored at order creation time. Only admins can view all orders or retrieve specific order details.
+
+## Endpoints
+
+### 1. Create Order
+
+- Method: POST
+- URL: /api/orders
+- Auth: Not required
+- Content-Type: application/json
+
+Request body:
+
+```json
+{
+  "customer_name": "Budi",
+  "customer_email": "budi@mail.com",
+  "items": [
+    {
+      "product_id": 1,
+      "qty": 2
+    },
+    {
+      "product_id": 2,
+      "qty": 1
+    }
+  ]
+}
+```
+
+Success response (201):
+
+```json
+{
+  "id": 1,
+  "customer_name": "Budi",
+  "customer_email": "budi@mail.com",
+  "status": "pending",
+  "total_price": "110.00",
+  "created_at": "2026-06-19T10:00:00.000000Z",
+  "updated_at": "2026-06-19T10:00:00.000000Z",
+  "items": [
+    {
+      "id": 1,
+      "order_id": 1,
+      "product_id": 1,
+      "qty": 2,
+      "price": "50.00",
+      "subtotal": "100.00",
+      "created_at": "2026-06-19T10:00:00.000000Z",
+      "updated_at": "2026-06-19T10:00:00.000000Z"
+    },
+    {
+      "id": 2,
+      "order_id": 1,
+      "product_id": 2,
+      "qty": 1,
+      "price": "10.00",
+      "subtotal": "10.00",
+      "created_at": "2026-06-19T10:00:00.000000Z",
+      "updated_at": "2026-06-19T10:00:00.000000Z"
+    }
+  ]
+}
+```
+
+### 2. List Orders
+
+- Method: GET
+- URL: /api/orders
+- Auth: Required (Bearer token)
+- Access: Admin only
+
+Success response (200):
+
+```json
+[
+  {
+    "id": 1,
+    "customer_name": "Budi",
+    "customer_email": "budi@mail.com",
+    "status": "pending",
+    "total_price": "110.00",
+    "created_at": "2026-06-19T10:00:00.000000Z",
+    "updated_at": "2026-06-19T10:00:00.000000Z",
+    "items": [...]
+  }
+]
+```
+
+### 3. Get Order Details
+
+- Method: GET
+- URL: /api/orders/{id}
+- Auth: Required (Bearer token)
+- Access: Admin only
+
+Success response (200):
+
+```json
+{
+  "id": 1,
+  "customer_name": "Budi",
+  "customer_email": "budi@mail.com",
+  "status": "pending",
+  "total_price": "110.00",
+  "created_at": "2026-06-19T10:00:00.000000Z",
+  "updated_at": "2026-06-19T10:00:00.000000Z",
+  "items": [...]
+}
+```
+
+## Validation Rules
+
+- `customer_name` is required and must be a string (max 255 characters)
+- `customer_email` is required and must be a valid email address
+- `items` array is required and must contain at least 1 item
+- Each item must have:
+  - `product_id`: required, must exist in products table
+  - `qty`: required, must be an integer and at least 1
+
+## Business Rules
+
+- **Only Active Products**: Orders can only be created with products that have status `active`. Attempting to order inactive products will fail with a 422 validation error.
+- **Price Snapshot**: When an order is created, the current price of each product is captured and stored in the `order_items.price` column. This ensures price history is maintained even if product prices change later.
+- **Subtotal Calculation**: Subtotal for each item = product price × quantity
+- **Total Price Calculation**: Total price is the sum of all item subtotals. This is calculated automatically and stored in the `orders.total_price` column.
+- **Transaction Safety**: Order creation uses database transactions to ensure data consistency. If any error occurs during order creation, all changes are rolled back.
+
+## Implementation Reference
+
+Main order module files:
+
+- app/Http/Controllers/OrderController.php
+- routes/api.php
+- app/Models/Order.php
+- app/Models/OrderItem.php
+- tests/Feature/OrderModuleTest.php
+
 # Authentication Feature Documentation
 
 This project uses Laravel Sanctum for API token authentication.
