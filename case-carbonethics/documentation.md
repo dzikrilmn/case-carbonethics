@@ -13,7 +13,7 @@ This repository is a Laravel 12 application that provides an API-first backend w
 
 Authentication functionality is implemented using Laravel Sanctum personal access tokens. Key authentication-related files are located at `app/Http/Controllers/AuthController.php`, `routes/api.php`, and `app/Models/User.php`. The API exposes login and logout endpoints which issue and revoke personal access tokens respectively.
 
-Use this document to locate authentication endpoints, testing instructions, implementation references, and security notes. Open the referenced files for implementation details and follow the migration and seeding files in `database/` when setting up a local environment.
+Use this document to locate authentication endpoints, product module endpoints, testing instructions, implementation references, and security notes. Open the referenced files for implementation details and follow the migration and seeding files in `database/` when setting up a local environment.
 
 # Database Structure
 
@@ -64,6 +64,60 @@ Relevant files for the database layer:
 - app/Models/Product.php
 - app/Models/Order.php
 - app/Models/OrderItem.php
+
+# Product Module Documentation
+
+This module exposes product catalog endpoints in the API. Public routes allow reading products, while write operations require authentication and an admin role.
+
+## Endpoints
+
+### 1. List Products
+
+- Method: GET
+- URL: /api/products
+- Auth: Not required
+
+### 2. Get Product Details
+
+- Method: GET
+- URL: /api/products/{id}
+- Auth: Not required
+
+### 3. Create Product
+
+- Method: POST
+- URL: /api/products
+- Auth: Required (Bearer token)
+- Access: Admin only
+
+### 4. Update Product
+
+- Method: PUT
+- URL: /api/products/{id}
+- Auth: Required (Bearer token)
+- Access: Admin only
+
+### 5. Delete Product
+
+- Method: DELETE
+- URL: /api/products/{id}
+- Auth: Required (Bearer token)
+- Access: Admin only
+
+## Validation Rules
+
+- `name` is required
+- `price` must be numeric and at least `0`
+- `status` must be either `active` or `inactive`
+
+## Implementation Reference
+
+Main product module files:
+
+- app/Http/Controllers/ProductController.php
+- routes/api.php
+- app/Models/Product.php
+- tests/Feature/ProductModuleTest.php
 
 # Authentication Feature Documentation
 
